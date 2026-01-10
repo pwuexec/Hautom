@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyEndesa Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --primary: #2563eb;
+            --success: #059669;
+            --radius: 8px;
+            --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-page: #020617;
+                --bg-card: #0f172a;
+                --bg-hover: #1e293b;
+                --border: #334155;
+                --text-main: #f8fafc;
+                --text-muted: #cbd5e1;
+                --primary: #3b82f6;
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .logo { font-weight: 700; font-size: 1.1rem; color: var(--text-main); letter-spacing: -0.025em; }
+        .nav-actions { display: flex; align-items: center; gap: 1.5rem; }
+        .nav-link { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; transition: color 0.2s; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+        .nav-link:hover { color: var(--text-main); }
+
+        .container { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+
+        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; gap: 1rem; }
+        .page-title h2 { font-size: 1.5rem; font-weight: 700; }
+        .page-title p { color: var(--text-muted); font-size: 0.875rem; }
+
+        .controls { display: flex; gap: 0.75rem; align-items: center; }
+        select, .btn {
+            height: 40px;
+            padding: 0 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary); border-color: var(--primary); color: white; }
+        .btn:hover { background: var(--bg-hover); }
+        .btn-primary:hover { opacity: 0.9; background: var(--primary); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius); }
+        .stat-label { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.875rem; font-weight: 700; color: var(--text-main); }
+
+        .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        @media (max-width: 1024px) { .grid-layout { grid-template-columns: 1fr; } }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+        .card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .card-title { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .card-body { padding: 1.5rem; }
+        .chart-container { height: 350px; position: relative; }
+
+        /* Chart Tabs & Toggles */
+        .chart-controls { display: flex; align-items: center; gap: 1.5rem; }
+        .chart-tabs { display: flex; background: var(--bg-hover); padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
+        .tab-btn {
+            padding: 6px 14px; font-size: 0.75rem; font-weight: 600; border: none; background: transparent;
+            color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: all 0.2s;
+        }
+        .tab-btn.active { background: var(--bg-card); color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        .chart-toggles { display: flex; gap: 1rem; font-size: 0.8125rem; color: var(--text-main); font-weight: 500; }
+        .chart-toggles label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .chart-toggles input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { text-align: left; padding: 1rem 1.5rem; background: var(--bg-hover); color: var(--text-main); font-weight: 700; border-bottom: 1px solid var(--border); position: relative; }
+        th.sortable { cursor: pointer; transition: background 0.2s; }
+        th.sortable:hover { background: var(--border); }
+        th.sortable::after { content: '↕'; position: absolute; right: 10px; opacity: 0.3; }
+        th.sort-asc::after { content: '↑'; opacity: 1; color: var(--primary); }
+        th.sort-desc::after { content: '↓'; opacity: 1; color: var(--primary); }
+
+        td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); color: var(--text-main); }
+
+        .price-new { font-weight: 700; color: var(--success); }
+        .price-old { font-size: 0.75rem; color: var(--text-muted); text-decoration: line-through; display: block; }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+
+        .about-content { padding: 0.5rem; }
+        .about-content p { margin-bottom: 1rem; line-height: 1.5; font-size: 0.9rem; color: var(--text-main); }
+        .about-disclaimer { background: var(--bg-hover); padding: 1rem; border-radius: 6px; border-left: 3px solid #f59e0b; margin: 1rem 0; font-size: 0.8rem; }
+        .about-disclaimer ul { padding-left: 1.25rem; margin-top: 0.5rem; }
+        .about-disclaimer li { margin-bottom: 0.25rem; }
+        .about-quote { border-left: 3px solid var(--primary); padding-left: 1rem; font-style: italic; color: var(--text-muted); margin: 1.25rem 0; font-size: 0.9rem; }
+
+        footer { margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">MyEndesa Analytics</div>
+    <div class="nav-actions">
+        <span class="nav-link" onclick="openAbout()">Sobre</span>
+        <a href="https://github.com/pwuexec/myendesa-analytics" target="_blank" class="nav-link">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+        </a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <div class="page-title">
+            <h2>Painel de Analítica</h2>
+            <p>Monitorização de custos de energia</p>
+        </div>
+        <div class="controls">
+            <select id="yearFilter">
+                <option value="">Todos os Anos</option>
+            </select>
+            <button class="btn btn-primary" onclick="processBills()">Processar Faturas</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Gasto</div><div class="stat-value" id="valTotalSpent">€0.00</div></div>
+        <div class="stat-card"><div class="stat-label">Consumo Total</div><div class="stat-value" id="valTotalKwh">0 kWh</div></div>
+        <div class="stat-card"><div class="stat-label">Preço Médio</div><div class="stat-value" id="valAvgPrice">€0.0000</div></div>
+    </div>
+
+    <div class="grid-layout">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Análise de Faturação</div>
+                <div class="chart-controls">
+                    <div class="chart-tabs">
+                        <button class="tab-btn active" onclick="setChartType('line', this)">Linhas</button>
+                        <button class="tab-btn" onclick="setChartType('bar', this)">Barras</button>
+                    </div>
+                    <div class="chart-toggles">
+                        <label><input type="checkbox" id="toggleKwh" checked onchange="updateChartVisibility()"> kWh</label>
+                        <label><input type="checkbox" id="toggleCost" checked onchange="updateChartVisibility()"> Custo</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body"><div class="chart-container"><canvas id="mainChart"></canvas></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title">Divisão da Fatura</div></div>
+            <div class="card-body"><div class="chart-container"><canvas id="breakdownChart"></canvas></div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title">Registos Individuais</div><span id="billCount" style="color:var(--text-muted); font-weight: 500;"></span></div>
+        <div style="overflow-x: auto;">
+            <table id="billsTable">
+                <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('date', this)">Mês/Ano</th>
+                    <th class="sortable" onclick="sortTable('totalKwh', this)">Consumo</th>
+                    <th>Preço Unitário</th>
+                    <th>Energia</th>
+                    <th>Taxas</th>
+                    <th class="sortable" onclick="sortTable('totalAmount', this)">Total</th>
+                    <th style="text-align:right">Fatura</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>MyEndesa Analytics</strong> — por pwuexec &bull; <span id="currentYear"></span></p>
+    </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target === this) closeModal()">
+    <div class="modal">
+        <div class="card-header"><div class="card-title" id="modalTitle"></div></div>
+        <div class="card-body" id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    const date = new Date();
+    document.getElementById('currentYear').textContent = date.getFullYear();
+
+    let allBills = [];
+    let mainChart, breakdownChart;
+    let currentViewType = 'line';
+    let sortConfig = { key: 'date', direction: 'desc' };
+
+    const monthsPT = {
+        'January': 'Jan', 'February': 'Fev', 'March': 'Mar', 'April': 'Abr',
+        'May': 'Mai', 'June': 'Jun', 'July': 'Jul', 'August': 'Ago',
+        'September': 'Set', 'October': 'Out', 'November': 'Nov', 'December': 'Dez'
+    };
+
+    const monthToIndex = {
+        'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5,
+        'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11
+    };
+
+    const chartColors = {
+        primary: '#2563eb',
+        primaryMuted: 'rgba(37, 99, 235, 0.1)',
+        secondary: '#64748b',
+        secondaryMuted: 'rgba(100, 116, 139, 0.1)',
+        text: getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#0f172a'
+    };
+
+    function openAbout() {
+        document.getElementById('modalTitle').textContent = "Sobre o Projecto";
+        document.getElementById('modalBody').innerHTML = `
+                <div class="about-content">
+                    <p>
+                        Este projecto nasceu da necessidade de transparência. Muitas vezes, os descontos e as tarifas de eletricidade são apresentados de forma complexa, tornando difícil validar se o valor final reflete a poupança esperada.
+                    </p>
+                    <div class="about-disclaimer">
+                        <strong>Notas Importantes:</strong>
+                        <ul>
+                            <li><strong>Exclusividade:</strong> Desenvolvido especificamente para faturas da <strong>Endesa</strong>.</li>
+                            <li><strong>Simplicidade:</strong> Atualmente não suporta tarifários bi-horários ou tri-horários.</li>
+                            <li><strong>Descontos:</strong> Considera descontos aplicados diretamente na fatura, incluindo a <strong>Tarifa Social</strong>.</li>
+                        </ul>
+                    </div>
+                    <div class="about-quote">
+                        "Fiz esta ferramenta para ter os meus dados de volta. Sem ruído de marketing, apenas os números reais do meu consumo e custos."
+                    </div>
+                    <p>
+                        É um projecto pessoal e <i>open-source</i> para ajudar a comunidade a ter maior controlo sobre as suas despesas energéticas.
+                    </p>
+                    <button class="btn btn-primary" style="margin-top: 0.5rem; width: 100%" onclick="closeModal()">Entendido</button>
+                </div>
+            `;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+    async function loadData(year = null) {
+        let url = '/bills?pageSize=100';
+        if (year && year !== "") {
+            url += `&year=${year}`;
+        }
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            allBills = data.items || [];
+            updateUI();
+        } catch (err) {
+            console.error("Erro ao carregar dados:", err);
+        }
+    }
+
+    function updateUI() {
+        const totalSpent = allBills.reduce((s, b) => s + b.totalAmount, 0);
+        const totalKwh = allBills.reduce((s, b) => s + b.totalKwh, 0);
+        const avgPrice = totalKwh > 0 ? (allBills.reduce((s, b) => s + (b.priceAfterDiscount * b.totalKwh), 0) / totalKwh) : 0;
+
+        document.getElementById('valTotalSpent').textContent = `€${totalSpent.toFixed(2)}`;
+        document.getElementById('valTotalKwh').textContent = `${totalKwh.toLocaleString()} kWh`;
+        document.getElementById('valAvgPrice').textContent = `€${avgPrice.toFixed(4)}`;
+
+        renderCharts();
+        renderTable();
+    }
+
+    function setChartType(type, btn) {
+        currentViewType = type;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderCharts();
+    }
+
+    function updateChartVisibility() {
+        if (!mainChart) return;
+        const showKwh = document.getElementById('toggleKwh').checked;
+        const showCost = document.getElementById('toggleCost').checked;
+
+        mainChart.setDatasetVisibility(0, showCost);
+        mainChart.setDatasetVisibility(1, showKwh);
+        mainChart.update();
+    }
+
+    function renderCharts() {
+        const ctxMain = document.getElementById('mainChart').getContext('2d');
+        const sorted = [...allBills].sort((a,b) => a.year - b.year || monthToIndex[a.month] - monthToIndex[b.month]);
+        const labels = sorted.map(b => `${monthsPT[b.month]} ${b.year}`);
+
+        if (mainChart) mainChart.destroy();
+
+        const isBar = currentViewType === 'bar';
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#0f172a';
+
+        const datasets = [
+            {
+                type: isBar ? 'bar' : 'line',
+                label: 'Custo',
+                data: sorted.map(b => b.totalAmount),
+                borderColor: chartColors.primary,
+                backgroundColor: isBar ? chartColors.primary : chartColors.primaryMuted,
+                fill: !isBar,
+                tension: 0.3,
+                yAxisID: 'y',
+                borderRadius: isBar ? 4 : 0,
+                borderWidth: 2
+            },
+            {
+                type: isBar ? 'bar' : 'line',
+                label: 'Consumo',
+                data: sorted.map(b => b.totalKwh),
+                borderColor: chartColors.secondary,
+                backgroundColor: isBar ? chartColors.secondary : chartColors.secondaryMuted,
+                fill: !isBar,
+                tension: 0.3,
+                borderRadius: isBar ? 4 : 0,
+                borderWidth: 2,
+                yAxisID: 'y1'
+            }
+        ];
+
+        mainChart = new Chart(ctxMain, {
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 13 },
+                        cornerRadius: 8,
+                        displayColors: true,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.datasetIndex === 0) {
+                                    label += '€' + context.parsed.y.toFixed(2);
+                                } else {
+                                    label += context.parsed.y.toLocaleString() + ' kWh';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: textColor, font: { weight: '500' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Euros (€)', font: { size: 11, weight: 'bold' }, color: textColor },
+                        ticks: { color: textColor },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Consumo (kWh)', font: { size: 11, weight: 'bold' }, color: textColor },
+                        ticks: { color: textColor }
+                    }
+                }
+            }
+        });
+
+        const ctxPie = document.getElementById('breakdownChart').getContext('2d');
+        if (breakdownChart) breakdownChart.destroy();
+        breakdownChart = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Energia', 'Taxas'],
+                datasets: [{
+                    data: [allBills.reduce((s,b)=>s+b.electricityValue,0), allBills.reduce((s,b)=>s+b.taxesAndFees,0)],
+                    backgroundColor: [chartColors.primary, '#94a3b8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: textColor,
+                            font: { weight: '600' },
+                            padding: 20,
+                            generateLabels: (chart) => {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const meta = chart.getDatasetMeta(0);
+                                        const style = meta.controller.getStyle(i);
+                                        return {
+                                            text: `${label} (€)`,
+                                            fillStyle: style.backgroundColor,
+                                            strokeStyle: style.borderColor,
+                                            lineWidth: style.borderWidth,
+                                            fontColor: textColor, // Corrigido para match
+                                            hidden: !chart.getDataVisibility(i),
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) label += ': ';
+                                label += '€' + context.parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        updateChartVisibility();
+    }
+
+    function sortTable(key, thElement) {
+        if (sortConfig.key === key) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.key = key;
+            sortConfig.direction = 'desc';
+        }
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+        });
+        thElement.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.querySelector('#billsTable tbody');
+        const sorted = [...allBills].sort((a, b) => {
+            let valA, valB;
+            if (sortConfig.key === 'date') {
+                valA = a.year * 100 + monthToIndex[a.month];
+                valB = b.year * 100 + monthToIndex[b.month];
+            } else {
+                valA = a[sortConfig.key];
+                valB = b[sortConfig.key];
+            }
+            if (sortConfig.direction === 'asc') return valA - valB;
+            return valB - valA;
+        });
+
+        document.getElementById('billCount').textContent = `${sorted.length} registos encontrados`;
+
+        tbody.innerHTML = sorted.map(b => {
+            const totalWithoutDiscount = (b.basePrice * b.totalKwh) + b.taxesAndFees;
+            return `
+                <tr>
+                    <td><strong>${monthsPT[b.month]} ${b.year}</strong></td>
+                    <td>${b.totalKwh.toLocaleString()} kWh</td>
+                    <td>
+                        <span class="price-new">€${b.priceAfterDiscount.toFixed(4)}</span>
+                        <span class="price-old">€${b.basePrice.toFixed(4)}</span>
+                    </td>
+                    <td>€${b.electricityValue.toFixed(2)}</td>
+                    <td>€${b.taxesAndFees.toFixed(2)}</td>
+                    <td>
+                        <span class="price-new">€${b.totalAmount.toFixed(2)}</span>
+                        <span class="price-old">€${totalWithoutDiscount.toFixed(2)}</span>
+                    </td>
+                    <td style="text-align:right"><a href="/bills/pdf/${b.id}" target="_blank" class="btn" style="padding:4px 12px; font-size:11px">PDF</a></td>
+                </tr>
+            `}).join('');
+    }
+
+    async function processBills() {
+        const btn = document.querySelector('.btn-primary');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "A processar...";
+        try {
+            await fetch('/bills/process', { method: 'POST' });
+            await loadData();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    document.getElementById('yearFilter').addEventListener('change', (e) => loadData(e.target.value));
+
+    (async () => {
+        await loadData();
+        const years = [...new Set(allBills.map(b => b.year))].sort((a,b) => b-a);
+        const select = document.getElementById('yearFilter');
+        years.forEach(y => select.add(new Option(y, y)));
+        const dateHeader = document.querySelector('th.sortable');
+        if(dateHeader) dateHeader.classList.add('sort-desc');
+    })();
+</script>
+</body>
+</html>
