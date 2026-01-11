@@ -81,10 +81,19 @@
         .btn:hover { background: var(--bg-hover); }
         .btn-primary:hover { opacity: 0.9; background: var(--primary); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .stat-card { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius); transition: transform 0.2s; position: relative; }
+        .stat-card:hover { transform: translateY(-2px); }
         .stat-label { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
         .stat-value { font-size: 1.875rem; font-weight: 700; color: var(--text-main); }
+        .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; font-weight: 500; }
+        .stat-sim-badge {
+            display: none; position: absolute; top: 8px; right: 8px;
+            background: var(--primary); color: white; font-size: 0.6rem;
+            padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;
+        }
+        .stat-card.simulating .stat-sim-badge { display: inline; }
+        .stat-card.simulating { border-color: var(--primary); }
 
         .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
         @media (max-width: 1024px) { .grid-layout { grid-template-columns: 1fr; } }
@@ -95,7 +104,6 @@
         .card-body { padding: 1.5rem; }
         .chart-container { height: 350px; position: relative; }
 
-        /* Chart Tabs & Toggles */
         .chart-controls { display: flex; align-items: center; gap: 1.5rem; }
         .chart-tabs { display: flex; background: var(--bg-hover); padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
         .tab-btn {
@@ -120,6 +128,15 @@
 
         .price-new { font-weight: 700; color: var(--success); }
         .price-old { font-size: 0.75rem; color: var(--text-muted); text-decoration: line-through; display: block; }
+        .price-sim { font-weight: 700; color: var(--primary); }
+        tr.row-simulated { background: rgba(37, 99, 235, 0.05); }
+        tr.row-simulated td:first-child { position: relative; }
+        tr.row-simulated td:first-child::before {
+            content: 'SIM'; position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+            background: var(--primary); color: white; font-size: 0.5rem; padding: 1px 3px;
+            border-radius: 2px; font-weight: 700;
+        }
+        tr.row-simulated td:first-child strong { margin-left: 28px; }
 
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -129,14 +146,51 @@
         .modal-overlay.active { display: flex; }
         .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
 
-        .about-content { padding: 0.5rem; }
-        .about-content p { margin-bottom: 1rem; line-height: 1.5; font-size: 0.9rem; color: var(--text-main); }
-        .about-disclaimer { background: var(--bg-hover); padding: 1rem; border-radius: 6px; border-left: 3px solid #f59e0b; margin: 1rem 0; font-size: 0.8rem; }
-        .about-disclaimer ul { padding-left: 1.25rem; margin-top: 0.5rem; }
-        .about-disclaimer li { margin-bottom: 0.25rem; }
-        .about-quote { border-left: 3px solid var(--primary); padding-left: 1rem; font-style: italic; color: var(--text-muted); margin: 1.25rem 0; font-size: 0.9rem; }
-
         footer { margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+
+        /* Simulation Panel */
+        .simulation-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .simulation-panel.active { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+        .simulation-label { font-weight: 600; font-size: 0.875rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; }
+        .simulation-badge { background: var(--primary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
+
+        /* Simulation Input */
+        .sim-input-group { display: flex; align-items: center; gap: 0.5rem; }
+        .sim-input-group label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 500; }
+        .sim-input {
+            width: 100px; height: 36px; padding: 0 0.75rem;
+            border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--bg-page); color: var(--text-main);
+            font-size: 0.875rem; font-weight: 600; text-align: center;
+        }
+        .sim-input:focus { outline: none; border-color: var(--primary); }
+        .sim-input-decimal { width: 70px; border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; }
+        .sim-prefix {
+            background: var(--bg-hover); color: var(--text-main); font-size: 0.875rem; font-weight: 600;
+            padding: 0 8px; height: 36px; display: flex; align-items: center;
+            border: 1px solid var(--border); border-right: none;
+            border-radius: var(--radius) 0 0 var(--radius);
+        }
+        .sim-unit { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+        .sim-savings { margin-left: auto; font-size: 0.875rem; font-weight: 600; }
+        .sim-savings.positive { color: var(--success); }
+        .sim-savings.negative { color: #dc2626; }
+
+        @media (max-width: 640px) {
+            .simulation-panel { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .sim-savings { margin-left: 0; }
+        }
     </style>
 </head>
 <body>
@@ -160,16 +214,48 @@
         </div>
         <div class="controls">
             <select id="yearFilter">
-                <option value="">Todos os Anos</option>
+                <option value="">Desde sempre</option>
             </select>
             <button class="btn btn-primary" onclick="processBills()">Processar Faturas</button>
         </div>
     </div>
 
     <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Total Gasto</div><div class="stat-value" id="valTotalSpent">€0.00</div></div>
-        <div class="stat-card"><div class="stat-label">Consumo Total</div><div class="stat-value" id="valTotalKwh">0 kWh</div></div>
-        <div class="stat-card"><div class="stat-label">Preço Médio</div><div class="stat-value" id="valAvgPrice">€0.0000</div></div>
+        <div class="stat-card">
+            <span class="stat-sim-badge">Simulação</span>
+            <div class="stat-label">Total Gasto</div>
+            <div class="stat-value" id="valTotalSpent">€0.00</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Consumo Total</div>
+            <div class="stat-value" id="valTotalKwh">0 kWh</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-sim-badge">Simulação</span>
+            <div class="stat-label" id="labelAvgPrice">Média Mensal</div>
+            <div class="stat-value" id="valAvgPrice">€0.00</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-sim-badge">Simulação</span>
+            <div class="stat-label">Mês Mais Caro</div>
+            <div class="stat-value" id="valMaxMonth">€0.00</div>
+            <div class="stat-sub" id="subMaxMonth">-</div>
+        </div>
+    </div>
+
+    <div class="simulation-panel" id="simPanel">
+        <div class="simulation-label">
+            Simulação
+            <span class="simulation-badge" id="simBadge" style="display:none">Ativo</span>
+        </div>
+        <div class="sim-input-group">
+            <label for="simKwhPrice">Preço kWh:</label>
+            <span class="sim-prefix">0.</span>
+            <input type="text" id="simKwhPrice" class="sim-input sim-input-decimal" inputmode="numeric" placeholder="1500" oninput="applySimulation()">
+            <span class="sim-unit">€/kWh</span>
+            <button class="btn" id="simClearBtn" onclick="clearSimulation()" style="display:none; padding: 0 12px;">Limpar</button>
+        </div>
+        <div class="sim-savings" id="simSavings"></div>
     </div>
 
     <div class="grid-layout">
@@ -232,9 +318,11 @@
     document.getElementById('currentYear').textContent = date.getFullYear();
 
     let allBills = [];
+    let originalBills = [];
     let mainChart, breakdownChart;
     let currentViewType = 'line';
     let sortConfig = { key: 'date', direction: 'desc' };
+    let simulationEnabled = false;
 
     const monthsPT = {
         'January': 'Jan', 'February': 'Fev', 'March': 'Mar', 'April': 'Abr',
@@ -258,25 +346,14 @@
     function openAbout() {
         document.getElementById('modalTitle').textContent = "Sobre o Projecto";
         document.getElementById('modalBody').innerHTML = `
-                <div class="about-content">
-                    <p>
-                        Este projecto nasceu da necessidade de transparência. Muitas vezes, os descontos e as tarifas de eletricidade são apresentados de forma complexa, tornando difícil validar se o valor final reflete a poupança esperada.
+                <div style="padding: 0.5rem;">
+                    <p style="margin-bottom: 1rem; line-height: 1.5; font-size: 0.9rem; color: var(--text-main);">
+                        Este projecto monitoriza custos reais de energia, focando no valor final pago após descontos e taxas.
                     </p>
-                    <div class="about-disclaimer">
-                        <strong>Notas Importantes:</strong>
-                        <ul>
-                            <li><strong>Exclusividade:</strong> Desenvolvido especificamente para faturas da <strong>Endesa</strong>.</li>
-                            <li><strong>Simplicidade:</strong> Atualmente não suporta tarifários bi-horários ou tri-horários.</li>
-                            <li><strong>Descontos:</strong> Considera descontos aplicados diretamente na fatura, incluindo a <strong>Tarifa Social</strong>.</li>
-                        </ul>
+                    <div style="background: var(--bg-hover); padding: 1rem; border-radius: 6px; border-left: 3px solid #f59e0b; margin-bottom: 1rem; font-size: 0.8rem;">
+                        <strong>Nota:</strong> Os cálculos de média mensal consideram o valor total de cada fatura dividido pelo número de registos no período selecionado.
                     </div>
-                    <div class="about-quote">
-                        "Fiz esta ferramenta para ter os meus dados de volta. Sem ruído de marketing, apenas os números reais do meu consumo e custos."
-                    </div>
-                    <p>
-                        É um projecto pessoal e <i>open-source</i> para ajudar a comunidade a ter maior controlo sobre as suas despesas energéticas.
-                    </p>
-                    <button class="btn btn-primary" style="margin-top: 0.5rem; width: 100%" onclick="closeModal()">Entendido</button>
+                    <button class="btn btn-primary" style="width: 100%" onclick="closeModal()">Fechar</button>
                 </div>
             `;
         document.getElementById('modalOverlay').classList.add('active');
@@ -293,21 +370,58 @@
         try {
             const res = await fetch(url);
             const data = await res.json();
-            allBills = data.items || [];
-            updateUI();
+            originalBills = data.items || [];
+            allBills = JSON.parse(JSON.stringify(originalBills));
+
+            // Definir preço médio como placeholder (apenas decimais)
+            if (originalBills.length > 0) {
+                const avgPrice = originalBills.reduce((s, b) => s + b.priceAfterDiscount, 0) / originalBills.length;
+                const decimals = avgPrice.toFixed(4).split('.')[1] || '1500';
+                document.getElementById('simKwhPrice').placeholder = decimals;
+            }
+
+            if (simulationEnabled) {
+                applySimulation();
+            } else {
+                updateUI();
+            }
         } catch (err) {
             console.error("Erro ao carregar dados:", err);
         }
     }
 
     function updateUI() {
+        const filterEl = document.getElementById('yearFilter');
+        const selectedLabel = filterEl.options[filterEl.selectedIndex].text;
+
+        // Somatórios dos dados filtrados
         const totalSpent = allBills.reduce((s, b) => s + b.totalAmount, 0);
         const totalKwh = allBills.reduce((s, b) => s + b.totalKwh, 0);
-        const avgPrice = totalKwh > 0 ? (allBills.reduce((s, b) => s + (b.priceAfterDiscount * b.totalKwh), 0) / totalKwh) : 0;
+
+        // Preço Médio Mensal: Total Gasto / Número de faturas (meses)
+        const numMonths = allBills.length;
+        const avgMonthlyPrice = numMonths > 0 ? (totalSpent / numMonths) : 0;
+
+        // Mês com maior gasto (considerando o filtro)
+        let maxMonthBill = null;
+        if (allBills.length > 0) {
+            maxMonthBill = allBills.reduce((prev, current) => (prev.totalAmount > current.totalAmount) ? prev : current);
+        }
 
         document.getElementById('valTotalSpent').textContent = `€${totalSpent.toFixed(2)}`;
         document.getElementById('valTotalKwh').textContent = `${totalKwh.toLocaleString()} kWh`;
-        document.getElementById('valAvgPrice').textContent = `€${avgPrice.toFixed(4)}`;
+        document.getElementById('valAvgPrice').textContent = `€${avgMonthlyPrice.toFixed(2)}`;
+
+        if (maxMonthBill) {
+            document.getElementById('valMaxMonth').textContent = `€${maxMonthBill.totalAmount.toFixed(2)}`;
+            document.getElementById('subMaxMonth').textContent = `${monthsPT[maxMonthBill.month]} ${maxMonthBill.year}`;
+        } else {
+            document.getElementById('valMaxMonth').textContent = `€0.00`;
+            document.getElementById('subMaxMonth').textContent = `-`;
+        }
+
+        // Atualiza rótulo dinamicamente baseado no filtro
+        document.getElementById('labelAvgPrice').textContent = `Média Mensal (${selectedLabel})`;
 
         renderCharts();
         renderTable();
@@ -322,11 +436,8 @@
 
     function updateChartVisibility() {
         if (!mainChart) return;
-        const showKwh = document.getElementById('toggleKwh').checked;
-        const showCost = document.getElementById('toggleCost').checked;
-
-        mainChart.setDatasetVisibility(0, showCost);
-        mainChart.setDatasetVisibility(1, showKwh);
+        mainChart.setDatasetVisibility(0, document.getElementById('toggleCost').checked);
+        mainChart.setDatasetVisibility(1, document.getElementById('toggleKwh').checked);
         mainChart.update();
     }
 
@@ -336,89 +447,43 @@
         const labels = sorted.map(b => `${monthsPT[b.month]} ${b.year}`);
 
         if (mainChart) mainChart.destroy();
-
         const isBar = currentViewType === 'bar';
         const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#0f172a';
 
-        const datasets = [
-            {
-                type: isBar ? 'bar' : 'line',
-                label: 'Custo',
-                data: sorted.map(b => b.totalAmount),
-                borderColor: chartColors.primary,
-                backgroundColor: isBar ? chartColors.primary : chartColors.primaryMuted,
-                fill: !isBar,
-                tension: 0.3,
-                yAxisID: 'y',
-                borderRadius: isBar ? 4 : 0,
-                borderWidth: 2
-            },
-            {
-                type: isBar ? 'bar' : 'line',
-                label: 'Consumo',
-                data: sorted.map(b => b.totalKwh),
-                borderColor: chartColors.secondary,
-                backgroundColor: isBar ? chartColors.secondary : chartColors.secondaryMuted,
-                fill: !isBar,
-                tension: 0.3,
-                borderRadius: isBar ? 4 : 0,
-                borderWidth: 2,
-                yAxisID: 'y1'
-            }
-        ];
-
         mainChart = new Chart(ctxMain, {
-            data: { labels, datasets },
+            data: {
+                labels,
+                datasets: [
+                    {
+                        type: isBar ? 'bar' : 'line',
+                        label: 'Custo',
+                        data: sorted.map(b => b.totalAmount),
+                        borderColor: chartColors.primary,
+                        backgroundColor: isBar ? chartColors.primary : chartColors.primaryMuted,
+                        fill: !isBar,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        type: isBar ? 'bar' : 'line',
+                        label: 'Consumo',
+                        data: sorted.map(b => b.totalKwh),
+                        borderColor: chartColors.secondary,
+                        backgroundColor: isBar ? chartColors.secondary : chartColors.secondaryMuted,
+                        fill: !isBar,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        padding: 12,
-                        titleFont: { size: 14, weight: 'bold' },
-                        bodyFont: { size: 13 },
-                        cornerRadius: 8,
-                        displayColors: true,
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) label += ': ';
-                                if (context.datasetIndex === 0) {
-                                    label += '€' + context.parsed.y.toFixed(2);
-                                } else {
-                                    label += context.parsed.y.toLocaleString() + ' kWh';
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    x: {
-                        ticks: { color: textColor, font: { weight: '500' } },
-                        grid: { display: false }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: { display: true, text: 'Euros (€)', font: { size: 11, weight: 'bold' }, color: textColor },
-                        ticks: { color: textColor },
-                        grid: { color: 'rgba(148, 163, 184, 0.1)' }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        title: { display: true, text: 'Consumo (kWh)', font: { size: 11, weight: 'bold' }, color: textColor },
-                        ticks: { color: textColor }
-                    }
+                    x: { ticks: { color: textColor }, grid: { display: false } },
+                    y: { position: 'left', ticks: { color: textColor }, title: { display: true, text: 'Euros (€)' } },
+                    y1: { position: 'right', ticks: { color: textColor }, grid: { display: false }, title: { display: true, text: 'kWh' } }
                 }
             }
         });
@@ -431,59 +496,16 @@
                 labels: ['Energia', 'Taxas'],
                 datasets: [{
                     data: [allBills.reduce((s,b)=>s+b.electricityValue,0), allBills.reduce((s,b)=>s+b.taxesAndFees,0)],
-                    backgroundColor: [chartColors.primary, '#94a3b8'],
-                    borderWidth: 0
+                    backgroundColor: [chartColors.primary, '#94a3b8']
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: textColor,
-                            font: { weight: '600' },
-                            padding: 20,
-                            generateLabels: (chart) => {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const meta = chart.getDatasetMeta(0);
-                                        const style = meta.controller.getStyle(i);
-                                        return {
-                                            text: `${label} (€)`,
-                                            fillStyle: style.backgroundColor,
-                                            strokeStyle: style.borderColor,
-                                            lineWidth: style.borderWidth,
-                                            fontColor: textColor, // Corrigido para match
-                                            hidden: !chart.getDataVisibility(i),
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        padding: 10,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) label += ': ';
-                                label += '€' + context.parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                return label;
-                            }
-                        }
-                    }
-                }
+                plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
             }
         });
-
         updateChartVisibility();
     }
 
@@ -494,9 +516,7 @@
             sortConfig.key = key;
             sortConfig.direction = 'desc';
         }
-        document.querySelectorAll('th.sortable').forEach(th => {
-            th.classList.remove('sort-asc', 'sort-desc');
-        });
+        document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
         thElement.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
         renderTable();
     }
@@ -504,44 +524,135 @@
     function renderTable() {
         const tbody = document.querySelector('#billsTable tbody');
         const sorted = [...allBills].sort((a, b) => {
-            let valA, valB;
-            if (sortConfig.key === 'date') {
-                valA = a.year * 100 + monthToIndex[a.month];
-                valB = b.year * 100 + monthToIndex[b.month];
-            } else {
-                valA = a[sortConfig.key];
-                valB = b[sortConfig.key];
-            }
-            if (sortConfig.direction === 'asc') return valA - valB;
-            return valB - valA;
+            let valA = (sortConfig.key === 'date') ? (a.year * 100 + monthToIndex[a.month]) : a[sortConfig.key];
+            let valB = (sortConfig.key === 'date') ? (b.year * 100 + monthToIndex[b.month]) : b[sortConfig.key];
+            return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
         });
 
         document.getElementById('billCount').textContent = `${sorted.length} registos encontrados`;
+        tbody.innerHTML = sorted.map((b, idx) => {
+            // Valores originais (para simulação)
+            const orig = simulationEnabled ? originalBills.find(o => o.id === b.id) : null;
+            const isSimulated = orig && (orig.priceAfterDiscount !== b.priceAfterDiscount);
 
-        tbody.innerHTML = sorted.map(b => {
-            const totalWithoutDiscount = (b.basePrice * b.totalKwh) + b.taxesAndFees;
+            // Preço base (sem desconto) - mostrar apenas quando NÃO há simulação
+            const hasDiscount = !isSimulated && b.basePrice && b.basePrice !== b.priceAfterDiscount;
+            const totalWithoutDiscount = hasDiscount ? (b.totalKwh * b.basePrice + b.taxesAndFees) : null;
+
+            // Construir célula de preço unitário
+            let priceCell, totalCell;
+
+            if (isSimulated) {
+                // Simulação: valor simulado + valor real riscado (com badge)
+                priceCell = `<span class="price-sim">€${b.priceAfterDiscount.toFixed(4)}</span><span class="price-old">€${orig.priceAfterDiscount.toFixed(4)}</span>`;
+                totalCell = `<span class="price-sim">€${b.totalAmount.toFixed(2)}</span><span class="price-old">€${orig.totalAmount.toFixed(2)}</span>`;
+            } else if (hasDiscount) {
+                // Desconto: valor com desconto + valor base riscado
+                priceCell = `<span class="price-new">€${b.priceAfterDiscount.toFixed(4)}</span><span class="price-old">€${b.basePrice.toFixed(4)}</span>`;
+                totalCell = `<span class="price-new">€${b.totalAmount.toFixed(2)}</span><span class="price-old">€${totalWithoutDiscount.toFixed(2)}</span>`;
+            } else {
+                // Normal: apenas o valor
+                priceCell = `<span class="price-new">€${b.priceAfterDiscount.toFixed(4)}</span>`;
+                totalCell = `<span class="price-new">€${b.totalAmount.toFixed(2)}</span>`;
+            }
+
             return `
-                <tr>
-                    <td><strong>${monthsPT[b.month]} ${b.year}</strong></td>
-                    <td>${b.totalKwh.toLocaleString()} kWh</td>
-                    <td>
-                        <span class="price-new">€${b.priceAfterDiscount.toFixed(4)}</span>
-                        <span class="price-old">€${b.basePrice.toFixed(4)}</span>
-                    </td>
-                    <td>€${b.electricityValue.toFixed(2)}</td>
-                    <td>€${b.taxesAndFees.toFixed(2)}</td>
-                    <td>
-                        <span class="price-new">€${b.totalAmount.toFixed(2)}</span>
-                        <span class="price-old">€${totalWithoutDiscount.toFixed(2)}</span>
-                    </td>
-                    <td style="text-align:right"><a href="/bills/pdf/${b.id}" target="_blank" class="btn" style="padding:4px 12px; font-size:11px">PDF</a></td>
-                </tr>
-            `}).join('');
+            <tr class="${isSimulated ? 'row-simulated' : ''}">
+                <td><strong>${monthsPT[b.month]} ${b.year}</strong></td>
+                <td>${b.totalKwh.toLocaleString()} kWh</td>
+                <td>${priceCell}</td>
+                <td>€${b.electricityValue.toFixed(2)}</td>
+                <td>€${b.taxesAndFees.toFixed(2)}</td>
+                <td>${totalCell}</td>
+                <td style="text-align:right"><a href="/bills/pdf/${b.id}" target="_blank" class="btn" style="padding:4px 12px; font-size:11px">PDF</a></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updateSimulationUI(active) {
+        const panel = document.getElementById('simPanel');
+        const badge = document.getElementById('simBadge');
+        const clearBtn = document.getElementById('simClearBtn');
+        const statCards = document.querySelectorAll('.stat-card');
+
+        if (active) {
+            panel.classList.add('active');
+            badge.style.display = 'inline';
+            clearBtn.style.display = 'inline';
+            statCards.forEach(card => {
+                if (card.querySelector('.stat-sim-badge')) {
+                    card.classList.add('simulating');
+                }
+            });
+        } else {
+            panel.classList.remove('active');
+            badge.style.display = 'none';
+            clearBtn.style.display = 'none';
+            statCards.forEach(card => card.classList.remove('simulating'));
+        }
+    }
+
+    function clearSimulation() {
+        document.getElementById('simKwhPrice').value = '';
+        document.getElementById('simSavings').textContent = '';
+        simulationEnabled = false;
+        updateSimulationUI(false);
+        allBills = JSON.parse(JSON.stringify(originalBills));
+        updateUI();
+    }
+
+    function applySimulation() {
+        const input = document.getElementById('simKwhPrice');
+        const rawValue = input.value.replace(/[^0-9]/g, '');
+        const newPrice = rawValue ? parseFloat('0.' + rawValue) : NaN;
+        const savings = document.getElementById('simSavings');
+
+        if (isNaN(newPrice) || newPrice <= 0 || rawValue === '') {
+            simulationEnabled = false;
+            updateSimulationUI(false);
+            allBills = JSON.parse(JSON.stringify(originalBills));
+            savings.textContent = '';
+            updateUI();
+            return;
+        }
+
+        simulationEnabled = true;
+        updateSimulationUI(true);
+
+        const originalTotal = originalBills.reduce((s, b) => s + b.totalAmount, 0);
+
+        allBills = originalBills.map(bill => {
+            const simulated = { ...bill };
+            const originalKwhCost = bill.totalKwh * bill.priceAfterDiscount;
+            const newKwhCost = bill.totalKwh * newPrice;
+            const difference = newKwhCost - originalKwhCost;
+
+            simulated.electricityValue = Math.max(0, bill.electricityValue + difference);
+            simulated.totalAmount = simulated.electricityValue + bill.taxesAndFees;
+            simulated.priceAfterDiscount = newPrice;
+
+            return simulated;
+        });
+
+        const simulatedTotal = allBills.reduce((s, b) => s + b.totalAmount, 0);
+        const diff = simulatedTotal - originalTotal;
+
+        if (diff < 0) {
+            savings.className = 'sim-savings positive';
+            savings.textContent = `Poupança: €${Math.abs(diff).toFixed(2)}`;
+        } else if (diff > 0) {
+            savings.className = 'sim-savings negative';
+            savings.textContent = `Custo adicional: +€${diff.toFixed(2)}`;
+        } else {
+            savings.className = 'sim-savings';
+            savings.textContent = 'Sem diferença';
+        }
+
+        updateUI();
     }
 
     async function processBills() {
         const btn = document.querySelector('.btn-primary');
-        const originalText = btn.textContent;
         btn.disabled = true;
         btn.textContent = "A processar...";
         try {
@@ -549,7 +660,7 @@
             await loadData();
         } finally {
             btn.disabled = false;
-            btn.textContent = originalText;
+            btn.textContent = "Processar Faturas";
         }
     }
 
@@ -560,8 +671,8 @@
         const years = [...new Set(allBills.map(b => b.year))].sort((a,b) => b-a);
         const select = document.getElementById('yearFilter');
         years.forEach(y => select.add(new Option(y, y)));
-        const dateHeader = document.querySelector('th.sortable');
-        if(dateHeader) dateHeader.classList.add('sort-desc');
+        document.querySelector('th.sortable').classList.add('sort-desc');
+        updateUI();
     })();
 </script>
 </body>
